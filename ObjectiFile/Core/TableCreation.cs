@@ -6,122 +6,89 @@ namespace ObjectiFile.Core
 {
     class TableCreation
     {
-        internal static string GetCollectionBody<T>(T obj)
+        internal static string[][] GetCollectionBody<T>(T obj)
         {
-            var enumObj = obj as IEnumerable<object>;
-            if (enumObj == null)
+            if (obj is not IEnumerable<object>)
             {
-                return GetValueCollectionBody(obj);
+                return new string[][] { new string[] { obj as string } };
+            }
+            else if (obj is IEnumerable<string> stringEnum)
+            {
+                return GetValueCollectionBody(stringEnum);
+            }
+            else if (obj is IEnumerable<ValueType> valueEnum)
+            {
+                return GetValueCollectionBody(valueEnum);
             }
             else
             {
-                var arrayDimensions = new int[] { enumObj.Count() + 1, enumObj.FirstOrDefault().GetType().GetProperties().Count() };
-                var rowList = new string[arrayDimensions[0], arrayDimensions[1]];
+                return GetObjectCollectionBody(obj);
+            }
+        }
 
-                for (int y = 0; y < arrayDimensions[0] - 1; y++)
+        private static string[][] GetObjectCollectionBody<T>(T obj)
+        {
+            var objCol = obj as IEnumerable<object>;
+            var arrayDimensions = new int[] { objCol.Count() + 1, objCol.FirstOrDefault().GetType().GetProperties().Length };
+            var rowList = new string[arrayDimensions[0]][];
+            var currentArray = new string[arrayDimensions[1]];
+
+            for (int y = 0; y < arrayDimensions[0] - 1; y++)
+            {
+                var currentObject = objCol.ElementAt(y);
+                
+                if (!ObjectProcessing.ImplementsIEnumerable(currentObject))
                 {
-                    var currentObject = enumObj.ElementAt(y);
-                    if (!ObjectProcessing.ImplementsIEnumerable(currentObject))
+                    for (int x = 0; x < arrayDimensions[1]; x++)
                     {
-                        for (int x = 0; x < arrayDimensions[1]; x++)
+                        var currentProperty = currentObject.GetType().GetProperties().ElementAt(x);
+                        if (y != 0)
                         {
-                            var currentProperty = currentObject.GetType().GetProperties().ElementAt(x);
-                            rowList[y + 1, x] = currentProperty.GetValue(currentObject).ToString();
-                            if (y == 0)
-                            {
-                                rowList[y, x] = currentProperty.Name;
-                            }
+                            currentArray[x] = currentProperty.GetValue(currentObject).ToString();
+                        }
+                        else
+                        {
+                            currentArray[x] = currentProperty.Name;
                         }
                     }
-                    else
-                    {
-                        ObjectProcessing.ObjectQueue.Enqueue(currentObject);
-                    }
-                }
-                return ArrayToString(rowList);
-            }
-        }
-
-        private static string GetValueCollectionBody<T>(T obj)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal static string GetObjectBody<T>(T obj)
-        {
-            var rowValues = "";
-            var members = new Dictionary<string, string>();
-            foreach (var propInfo in obj.GetType().GetProperties())
-            {
-                var newObject = propInfo.GetValue(obj);
-                if (ObjectProcessing.ImplementsIEnumerable(newObject) && !(newObject is string))
-                {
-                    ObjectProcessing.ObjectQueue.Enqueue(newObject);
                 }
                 else
                 {
-                    members.Add(propInfo.Name, propInfo.GetValue(obj).ToString());
+                    ObjectProcessing.ObjectQueue.Enqueue(currentObject);
                 }
+                rowList[y] = currentArray;
             }
-
-            var columnNames = GetColumnNames(members);
-            for (int i = 0; i < members.Count; i++)
-            {
-                if (string.IsNullOrEmpty(rowValues))
-                {
-                    rowValues = string.Join("", rowValues, ObjectProcessing.CheckForComma(members.ElementAt(i).Value));
-                }
-                else
-                {
-                    rowValues = string.Join(",", rowValues, ObjectProcessing.CheckForComma(members.ElementAt(i).Value));
-                }
-            }
-
-            return string.Join(Environment.NewLine, columnNames, rowValues);
+            return rowList;
         }
 
-        private static string GetColumnNames(Dictionary<string, string> members)
+        private static string[][] GetValueCollectionBody<T>(IEnumerable<T> obj)
         {
-            string columnNames = "";
-            for (int i = 0; i < members.Count; i++)
+            var result = new string[obj.GetType().GetProperties().Length];
+            int count = 0;
+            foreach (var inner in obj)
             {
-                if (string.IsNullOrEmpty(columnNames))
-                {
-                    columnNames = string.Join("", columnNames, members.ElementAt(i).Key);
-                }
-                else
-                {
-                    columnNames = string.Join(",", columnNames, members.ElementAt(i).Key);
-                }
+                result[count] = inner as string;
+                count++;
             }
-            return columnNames;
+            return new string[][] { result };
         }
 
-        private static string ArrayToString(string[,] rowList)
+        internal static string[][] GetObjectBody<T>(T obj)
         {
-            var textBody = "";
-            for (int i = 0; i < rowList.GetLength(0); i++)
+            var properties = obj.GetType().GetProperties();
+            var results = new string[properties.Length][];
+            var row = new string[2];
+            for (int i = 0; i < properties.Length - 1; i++)
             {
-                for (int z = 0; z < rowList.GetLength(1); z++)
+                var currentObj = properties.ElementAt(i);
+                row[0] = currentObj.Name;
+                row[1] = currentObj.GetValue(currentObj).ToString();
+                if (ObjectProcessing.ImplementsIEnumerable(currentObj))
                 {
-                    var stringToAdd = ObjectProcessing.CheckForComma(rowList[i, z]);
-
-                    if (z == 0)
-                    {
-                        textBody = string.Join("", textBody, stringToAdd);
-                    }
-                    else
-                    {
-                        textBody = string.Join(",", textBody, stringToAdd);
-                    }
-
-                    if (z == rowList.GetLength(1) - 1)
-                    {
-                        textBody = string.Join("", textBody, Environment.NewLine);
-                    }
+                    ObjectProcessing.ObjectQueue.Enqueue(currentObj);
                 }
             }
-            return textBody;
+            return results;
         }
     }
 }

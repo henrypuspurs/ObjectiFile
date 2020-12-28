@@ -12,11 +12,9 @@ namespace ObjectiFile.Tests
         {
             var obj = new BasicClass { Id = 5, Name = "John Smith", SecondString = "This is a string", State = true };
 
-            ObjectiFile.Write("Hello");
-            ObjectiFile.Write(1);
-            ObjectiFile.Write(obj);
-
-            Assert.True(obj.State);
+            Assert.Equal(1, ObjectiFile.Write("Hello"));
+            Assert.Equal(1, ObjectiFile.Write(1));
+            Assert.Equal(1, ObjectiFile.Write(obj));
         }
 
         [Fact]
@@ -29,9 +27,7 @@ namespace ObjectiFile.Tests
 
             var objectList = new List<BasicClass> { obj, objone, objtwo, objthree };
 
-            ObjectiFile.Write(objectList);
-
-            Assert.True(obj.State);
+            Assert.Equal(1, ObjectiFile.Write(objectList));
         }
 
         [Fact]
@@ -46,9 +42,7 @@ namespace ObjectiFile.Tests
                 new List<int> { 0, 9, 8, 7, 6 }
             };
             obj.MultiArray = new int[,,] { { { 1, 2, 3 }, { 4, 5, 6 } }, { { 7, 8, 9 }, { 10, 11, 12 } } };
-            ObjectiFile.Write(obj);
-
-            Assert.True(obj.State);
+            Assert.Equal(6, ObjectiFile.Write(obj));
         }
     }
 }

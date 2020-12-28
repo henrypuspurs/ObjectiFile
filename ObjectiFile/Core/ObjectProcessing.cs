@@ -7,14 +7,14 @@ namespace ObjectiFile.Core
     {
         internal static Queue<object> ObjectQueue { get; set; } = new Queue<object>();
 
-        internal static (string Name, string Body) GetInformation<T>(T obj)
+        internal static (string Name, string[][] Body) GetInformation<T>(T obj)
         {
             switch (obj)
             {
                 case string str:
-                    return ("Single String", CheckForComma(str));
+                    return ("Single String", new string[][] { new string[] { str } });
                 case ValueType _:
-                    return (obj.GetType().Name, obj.ToString());
+                    return (obj.GetType().Name, new string[][] { new string[] { obj.ToString() } });
                 case null:
                     return (null, null);
                 default:
@@ -45,23 +45,6 @@ namespace ObjectiFile.Core
                 }
             }
             return false;
-        }
-
-        internal static string CheckForComma(string stringToAdd)
-        {
-            string checkedString = "";
-            if (stringToAdd != null)
-            {
-                if (stringToAdd.Contains(","))
-                {
-                    checkedString = $"\"{stringToAdd}\"";
-                }
-                else
-                {
-                    checkedString = stringToAdd;
-                }
-            }
-            return checkedString;
         }
     }
 }
